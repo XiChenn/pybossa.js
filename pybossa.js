@@ -63,6 +63,19 @@
         });
     }
 
+    function _cancelTask(projectname, taskId) {
+        var data = {
+            'projectname': projectname
+        };
+        return $.ajax({
+            type: 'POST',
+            url: url + 'api/task/' + taskId + '/canceltask',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(data)
+        });
+    }
+
     // Private methods
     function _getProject(projectname){
         return _fetchProject(projectname)
@@ -160,9 +173,8 @@
             }
 
             function loop(task) {
-                var nextLoaded = getNextTask(1, task),
                 taskSolved = $.Deferred(),
-                nextUrl;
+                    nextUrl;
                 if (task.id) {
                     if (url != '/') {
                         nextUrl = url + '/project/' + projectname + '/task/' + task.id;
@@ -173,7 +185,9 @@
                     history.pushState({}, "Title", nextUrl);
                 }
                 _presentTask(task, taskSolved);
-                $.when(nextLoaded, taskSolved).done(loop);
+                $.when(taskSolved).then(function() {
+                    getNextTask(0, task).done(loop);
+                });
             }
             getNextTask(0, undefined).done(loop);
         });
@@ -229,4 +243,9 @@
         return url;
     };
 
+    pybossa.cancelTask = function (projectname, taskId) {
+        _cancelTask(projectname, taskId).done(function(){
+            window.location.replace('/project/' + projectname);
+        });
+    };
 } (window.pybossa = window.pybossa || {}, jQuery));
