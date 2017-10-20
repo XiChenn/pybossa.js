@@ -173,7 +173,7 @@
             }
 
             function loop(task) {
-                taskSolved = $.Deferred(),
+                var taskSolved = $.Deferred(),
                     nextUrl;
                 if (task.id) {
                     if (url != '/') {
