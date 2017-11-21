@@ -76,6 +76,14 @@
         });
     }
 
+    function _fetchLock(taskId) {
+        return $.ajax({
+            url: url + 'api/task/' + taskId + '/lock',
+            cache: false,
+            dataType: 'json'
+        });
+    }
+
     // Private methods
     function _getProject(projectname){
         return _fetchProject(projectname)
@@ -248,4 +256,8 @@
             window.location.replace('/project/' + projectname);
         });
     };
+
+    pybossa.fetchLock = function (taskId) {
+        return _fetchLock(taskId);
+    }
 } (window.pybossa = window.pybossa || {}, jQuery));
