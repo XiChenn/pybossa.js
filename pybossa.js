@@ -54,13 +54,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     function _saveTaskRun(taskrun) {
-        return $.ajax({
-            type: 'POST',
-            url: url + 'api/taskrun',
-            dataType: 'json',
-            contentType: 'application/json',
-            data: taskrun
-        });
+        if(window.pybossa.isGoldMode){
+            const projectId = JSON.parse(taskrun).project_id;
+            return $.ajax({
+                type: 'POST',
+                url: url + `api/project/${projectId}/taskgold`,
+                dataType: 'json',
+                contentType: 'application/json',
+                data: taskrun
+            });
+        } else {
+            return $.ajax({
+                type: 'POST',
+                url: url + 'api/taskrun',
+                dataType: 'json',
+                contentType: 'application/json',
+                data: taskrun
+            });
+        }
+
     }
 
     function _cancelTask(projectname, taskId) {
@@ -112,7 +124,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             'info': task.answer
         };
         taskrun = JSON.stringify(taskrun);
-        return _saveTaskRun(taskrun).then(function(data) {return data;});
+        return _saveTaskRun(taskrun).then(function(data) {
+            if(window.pybossa.isGoldMode){
+                setTimeout(function(){
+                    window.opener.location.reload(true);
+                    window.top.close();
+                }, 100);
+            }
+            return data;});
     }
 
     function _getCurrentTaskId(url) {
