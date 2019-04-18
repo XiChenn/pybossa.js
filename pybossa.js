@@ -52,27 +52,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             dataType: 'json'
         });
     }
+    function _postRequest(url, data){
+        return $.ajax({
+            type: 'POST',
+            url: url,
+            dataType: 'json',
+            contentType: 'application/json',
+            data: data
+        });
+    }
 
-    function _saveTaskRun(taskrun) {
+    function _saveTaskRun(taskrun, projectId) {
+        var requestUrl = url + 'api/taskrun';
         if(window.pybossa.isGoldMode){
-            const projectId = JSON.parse(taskrun).project_id;
-            return $.ajax({
-                type: 'POST',
-                url: url + `api/project/${projectId}/taskgold`,
-                dataType: 'json',
-                contentType: 'application/json',
-                data: taskrun
-            });
-        } else {
-            return $.ajax({
-                type: 'POST',
-                url: url + 'api/taskrun',
-                dataType: 'json',
-                contentType: 'application/json',
-                data: taskrun
-            });
+            requestUrl = url + 'api/project/' + projectId + '/taskgold';
         }
-
+        return _postRequest(requestUrl, taskrun);
     }
 
     function _cancelTask(projectname, taskId) {
@@ -124,7 +119,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             'info': task.answer
         };
         taskrun = JSON.stringify(taskrun);
-        return _saveTaskRun(taskrun).then(function(data) {
+        return _saveTaskRun(taskrun, task.project_id).then(function(data) {
             if(window.pybossa.isGoldMode){
                 setTimeout(function(){
                     window.opener.location.reload(true);
