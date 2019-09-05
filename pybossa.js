@@ -36,15 +36,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         });
     }
 
+    function _newTaskUrl(projectId) {
+        var seg = window.pybossa.isGoldMode ? '/taskgold' : '/newtask'
+        return url + 'api/project/' + projectId + seg
+    }
+
     function _fetchNewTask(projectId, offset) {
         offset = offset || 0;
         return $.ajax({
-            url: url + 'api/project/' + projectId + '/newtask',
+            url: _newTaskUrl(projectId),
             data: 'offset=' + offset,
             cache: false,
             dataType: 'json'
         });
     }
+
     function _fetchTask(taskId) {
         return $.ajax({
             url: url + 'api/task/' + taskId,
@@ -52,6 +58,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             dataType: 'json'
         });
     }
+
     function _postRequest(url, data){
         return $.ajax({
             type: 'POST',
@@ -120,7 +127,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         };
         taskrun = JSON.stringify(taskrun);
         return _saveTaskRun(taskrun, task.project_id).then(function(data) {
-            if(window.pybossa.isGoldMode){
+            if(window.pybossa.isGoldMode && !window.pybossa.isBulk){
                 setTimeout(function(){
                     window.opener.location.reload(true);
                     window.top.close();
