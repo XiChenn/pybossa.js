@@ -235,7 +235,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         var failedQuiz = _failedQuiz(quiz, config);
         var outOfNoneGoldTask = _outOfNoneGoldTask(userProgress)
 
-        if ((outOfGoldenTasks|| projectCompleted || failedQuiz || outOfNoneGoldTask) && !window.pybossa.isGoldMode) {
+        if (outOfNoneGoldTask || ((outOfGoldenTasks|| projectCompleted || failedQuiz ) && !window.pybossa.isGoldMode)) {
             _setTpHidden(true);
         }
 
