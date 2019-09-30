@@ -166,8 +166,72 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     function _setUserPresentTask (userFunc) {
         _presentTask = userFunc;
     }
+    function _setTpHidden (value){
+        tpElement = document.getElementById('task-presenter-section');
+        if (tpElement){
+            tpElement.hidden = value;
+        }
+    }
+    function _getNotificationMessage(userProgress){
+        var quiz = userProgress.quiz;
+        var config = quiz.config;
+        var inQuizMode = quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0));
+        var quizStarted = quiz && config.enabled && quiz.status === 'in_progress' && (quiz.result.right === 0 && quiz.result.wrong === 0);
+        var outOfGoldenTasks = quiz && config.enabled && userProgress.available_gold_tasks === 0 && quiz.status === 'in_progress' && !window.pybossa.isGoldMode;
+        var outOfNoneGoldTask =  userProgress.available_gold_tasks === userProgress.remaining && window.pybossa.isGoldMode;
+        var failedQuiz = quiz && config.enabled && quiz.status === 'failed';
+        var passedQuiz = quiz && config.enabled && quiz.status === 'passed';
+        var projectCompleted = quiz && userProgress.remaining_for_user === 0 && quiz.status !== 'in_progress';
+        var inGoldMode = window.pybossa.isGoldMode && !outOfNoneGoldTask;
+
+        var outOfGoldenTasksMessage = 'We have run out of quiz questions for you. Please notify the project owner.';
+        var inGoldModeMessage = 'In Gold Mode';
+        var outOfNoneGoldTaskMessage = 'In gold mode, there are no task available.';
+        var failedQuizMessage = 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You have been blocked from working on this job. The administrator of this job will contact you with next steps.';
+        var passedQuizMessage = 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You will now be able to work on this job.';
+        var projectCompletedMessage = 'Congratulations, you have completed the job.';
+        var inQuizMode = 'In quiz mode';
+        var quizStartedMessage = 'You must complete a quiz successfully before you can work on this job.';
+
+        if ((outOfGoldenTasks || projectCompleted || failedQuiz) && !window.pybossa.isGoldMode) {
+            _setTpHidden(true);
+        }
+        if (outOfGoldenTasks)
+            return outOfGoldenTasksMessage;
+        else if (inGoldMode)
+            return inGoldModeMessage;
+        else if (outOfNoneGoldTask)
+            return outOfNoneGoldTaskMessage;
+        else if (failedQuiz)
+            return failedQuizMessage;
+        else if (passedQuiz)
+            return passedQuizMessage;
+        else if (projectCompleted)
+            return projectCompletedMessage;
+        else if (quizStarted)
+            return quizStartedMessage;
+        else if (inQuizMode)
+            return inQuizMode;
+
+    }
+
+    function _displayBanner(){
+      var regex = new RegExp('/project/([^/]+)');
+      var match = window.location.href.match(regex);
+      var projectName;
+      if (match) {
+        projectName = match[1];
+      }
+      _userProgress(projectName).then(data => {
+        var message = _getNotificationMessage(data);
+        if(message){
+            pybossaNotify(message, true, 'warning');
+        }
+        });
+    }
 
     function _resolveNextTaskLoaded(task, deferred) {
+        _displayBanner();
         var udef = $.Deferred();
         _taskLoaded(task, udef);
         udef.done(function(task) {
