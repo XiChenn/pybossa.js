@@ -172,47 +172,77 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             tpElement.hidden = value;
         }
     }
+
+    function _inQuizMode (quiz, config){
+        if (quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0))){
+            return { msg: 'In quiz mode', type: 'info' };
+        }
+    }
+
+    function _quizStarted (quiz, config){
+        if(quiz && config.enabled && quiz.status === 'in_progress' && (quiz.result.right === 0 && quiz.result.wrong === 0)){
+            return { msg: 'You must complete a quiz successfully before you can work on this job. You are in Quiz mode.',
+                     type: 'info' }
+        }
+    }
+
+    function _outOfGoldenTasks (userProgress,quiz, config){
+        if (quiz && config.enabled && userProgress.available_gold_tasks === 0 && quiz.status === 'in_progress' && !window.pybossa.isGoldMode){
+            return { msg: 'We have run out of quiz questions for you. Please notify the project owner.',
+                     type: 'info' }
+        }
+    }
+
+    function _outOfNoneGoldTask (userProgress){
+        if (userProgress.available_gold_tasks === userProgress.remaining && window.pybossa.isGoldMode){
+            return { msg:'In gold mode, there are no task available.',
+                     type: 'warning' };
+        }
+    }
+
+    function _failedQuiz (quiz, config){
+        if (quiz && config.enabled && quiz.status === 'failed'){
+            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You have been blocked from working on this job. The administrator of this job will contact you with next steps.',
+                     type: 'error' };
+        }
+    }
+
+    function _passedQuiz (quiz, config){
+        if (quiz && config.enabled && quiz.status === 'passed' && quiz.result.right === 0 && quiz.result.wrong === 0){
+            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You will now be able to work on this job.',
+                     type: 'warning' };
+        }
+    }
+
+    function _projectCompleted (userProgress, quiz){
+        if (quiz && userProgress.remaining_for_user === 0 && quiz.status !== 'in_progress'){
+            return { msg: 'Congratulations, you have completed the job.',
+                     type: 'success' };
+        }
+    }
+
+    function _inGoldMode (userProgress){
+        if (window.pybossa.isGoldMode && !(userProgress.available_gold_tasks === userProgress.remaining)){
+            return { msg: 'In Gold Mode', type: 'warning' };
+        }
+    }
+
     function _getNotificationMessage(userProgress){
         var quiz = userProgress.quiz;
         var config = quiz.config;
-        var inQuizMode = quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0));
-        var quizStarted = quiz && config.enabled && quiz.status === 'in_progress' && (quiz.result.right === 0 && quiz.result.wrong === 0);
-        var outOfGoldenTasks = quiz && config.enabled && userProgress.available_gold_tasks === 0 && quiz.status === 'in_progress' && !window.pybossa.isGoldMode;
-        var outOfNoneGoldTask =  userProgress.available_gold_tasks === userProgress.remaining && window.pybossa.isGoldMode;
-        var failedQuiz = quiz && config.enabled && quiz.status === 'failed';
-        var passedQuiz = quiz && config.enabled && quiz.status === 'passed';
-        var projectCompleted = quiz && userProgress.remaining_for_user === 0 && quiz.status !== 'in_progress';
-        var inGoldMode = window.pybossa.isGoldMode && !outOfNoneGoldTask;
+        var projectCompleted = _projectCompleted(userProgress, quiz);
+        var outOfGoldenTasks = _outOfGoldenTasks(userProgress,quiz, config);
+        var failedQuiz = _failedQuiz(quiz, config);
+        var outOfNoneGoldTask = _outOfNoneGoldTask(userProgress)
 
-        var outOfGoldenTasksMessage = 'We have run out of quiz questions for you. Please notify the project owner.';
-        var inGoldModeMessage = 'In Gold Mode';
-        var outOfNoneGoldTaskMessage = 'In gold mode, there are no task available.';
-        var failedQuizMessage = 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You have been blocked from working on this job. The administrator of this job will contact you with next steps.';
-        var passedQuizMessage = 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You will now be able to work on this job.';
-        var projectCompletedMessage = 'Congratulations, you have completed the job.';
-        var inQuizMode = 'In quiz mode';
-        var quizStartedMessage = 'You must complete a quiz successfully before you can work on this job.';
-
-        if ((outOfGoldenTasks || projectCompleted || failedQuiz) && !window.pybossa.isGoldMode) {
+        if ((outOfGoldenTasks|| projectCompleted || failedQuiz || outOfNoneGoldTask) && !window.pybossa.isGoldMode) {
             _setTpHidden(true);
         }
-        if (outOfGoldenTasks)
-            return outOfGoldenTasksMessage;
-        else if (inGoldMode)
-            return inGoldModeMessage;
-        else if (outOfNoneGoldTask)
-            return outOfNoneGoldTaskMessage;
-        else if (failedQuiz)
-            return failedQuizMessage;
-        else if (passedQuiz)
-            return passedQuizMessage;
-        else if (projectCompleted)
-            return projectCompletedMessage;
-        else if (quizStarted)
-            return quizStartedMessage;
-        else if (inQuizMode)
-            return inQuizMode;
 
+        return outOfGoldenTasks || _inGoldMode(userProgress) ||
+        outOfNoneGoldTask || failedQuiz || projectCompleted ||
+        _passedQuiz(quiz, config) ||
+        _quizStarted(quiz, config) || _inQuizMode(quiz, config);
     }
 
     function _displayBanner(){
@@ -222,10 +252,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       if (match) {
         projectName = match[1];
       }
+
       _userProgress(projectName).then(data => {
-        var message = _getNotificationMessage(data);
-        if(message){
-            pybossaNotify(message, true, 'warning');
+        var quizMsg = _getNotificationMessage(data);
+        if(quizMsg){
+            pybossaNotify(quizMsg.msg, true, quizMsg.type);
         }
         });
     }
