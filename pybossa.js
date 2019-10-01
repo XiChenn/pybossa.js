@@ -173,28 +173,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
-    function _inQuizMode (quiz, config){
-        if (quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0))){
+    function _inQuizMode (userProgress, quiz, config){
+        if (quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0) && userProgress.remaining_for_user > 0)){
+            window.pybossa.takingQuiz = true;
+
             return { msg: 'In quiz mode', type: 'info' };
         }
     }
 
     function _quizStarted (quiz, config){
-        if(quiz && config.enabled && quiz.status === 'in_progress' && (quiz.result.right === 0 && quiz.result.wrong === 0)){
+        if(!window.pybossa.takingQuiz && !window.pybossa.passedQuizShowed && quiz && config.enabled && quiz.status === 'in_progress' && (quiz.result.right === 0 && quiz.result.wrong === 0)){
+            window.pybossa.passedQuizShowed = true;
             return { msg: 'You must complete a quiz successfully before you can work on this job. You are in Quiz mode.',
                      type: 'info' }
         }
     }
 
-    function _outOfGoldenTasks (userProgress,quiz, config){
-        if (quiz && config.enabled && userProgress.available_gold_tasks === 0 && quiz.status === 'in_progress' && !window.pybossa.isGoldMode){
+    function _outOfGoldenTasks (userProgress, quiz, config){
+        if (quiz && config.enabled && userProgress.remaining_for_user === 0 && quiz.status === 'in_progress' && !window.pybossa.isGoldMode){
             return { msg: 'We have run out of quiz questions for you. Please notify the project owner.',
                      type: 'info' }
         }
     }
 
     function _outOfNoneGoldTask (userProgress){
-        if (userProgress.available_gold_tasks === userProgress.remaining && window.pybossa.isGoldMode){
+        if (userProgress.available_gold_tasks === userProgress.total && window.pybossa.isGoldMode){
             return { msg:'In gold mode, there are no task available.',
                      type: 'warning' };
         }
@@ -208,7 +211,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     function _passedQuiz (quiz, config){
-        if (quiz && config.enabled && quiz.status === 'passed' && quiz.result.right === 0 && quiz.result.wrong === 0){
+        if (quiz && config.enabled && quiz.status === 'passed' && (window.pybossa.passedQuizShowed || window.pybossa.takingQuiz)){
+            window.pybossa.passedQuizShowed = false;
+            window.pybossa.takingQuiz = false;
             return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You will now be able to work on this job.',
                      type: 'warning' };
         }
@@ -231,34 +236,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         var quiz = userProgress.quiz;
         var config = quiz.config;
         var projectCompleted = _projectCompleted(userProgress, quiz);
-        var outOfGoldenTasks = _outOfGoldenTasks(userProgress,quiz, config);
+        var outOfGoldenTasks = _outOfGoldenTasks(userProgress, quiz, config);
         var failedQuiz = _failedQuiz(quiz, config);
         var outOfNoneGoldTask = _outOfNoneGoldTask(userProgress)
 
         if (outOfNoneGoldTask || ((outOfGoldenTasks|| projectCompleted || failedQuiz ) && !window.pybossa.isGoldMode)) {
             _setTpHidden(true);
         }
-
-        return outOfGoldenTasks || _inGoldMode(userProgress) ||
-        outOfNoneGoldTask || failedQuiz || projectCompleted ||
-        _passedQuiz(quiz, config) ||
-        _quizStarted(quiz, config) || _inQuizMode(quiz, config);
+        return outOfGoldenTasks || outOfNoneGoldTask || _inGoldMode(userProgress) ||
+               failedQuiz || projectCompleted ||
+               _passedQuiz(quiz, config) ||
+               _quizStarted(quiz, config) || _inQuizMode(userProgress, quiz, config);
     }
 
     function _displayBanner(){
-      var regex = new RegExp('/project/([^/]+)');
-      var match = window.location.href.match(regex);
-      var projectName;
-      if (match) {
-        projectName = match[1];
-      }
-
-      _userProgress(projectName).then(data => {
-        var quizMsg = _getNotificationMessage(data);
-        if(quizMsg){
-            pybossaNotify(quizMsg.msg, true, quizMsg.type);
+        var regex = new RegExp('/project/([^/]+)');
+        var match = window.location.href.match(regex);
+        var projectName;
+        if (match) {
+            projectName = match[1];
         }
-        });
+
+        _userProgress(projectName).then(data => {
+            var quizMsg = _getNotificationMessage(data);
+            if(quizMsg){
+                pybossaNotify(quizMsg.msg, true, quizMsg.type);
+            }
+            });
     }
 
     function _resolveNextTaskLoaded(task, deferred) {
