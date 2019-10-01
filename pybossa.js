@@ -185,7 +185,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     //This func determine if worker is in quiz mode and is the first question of the quiz, and ensure there are questions availables
-    function _quizStarted (userProgress,quiz, config){
+    function _quizStarted (userProgress, quiz, config){
         if(!window.pybossa.takingQuiz && !window.pybossa.passedQuizShowed && quiz && config.enabled && quiz.status === 'in_progress' &&
             userProgress.remaining_for_user > 0 && (quiz.result.right === 0 && quiz.result.wrong === 0)){
 
@@ -215,8 +215,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     //This func determine if the quiz is failed and the user is not able to work on the project
     function _failedQuiz (quiz, config){
         if (quiz && config.enabled && quiz.status === 'failed'){
-            return { msg: `Thank you for taking the quiz. You got ${quiz.result.right} correct out of ${quiz.config.questions}
-                            tasks. You have been blocked from working on this job. The administrator of this job will contact you with next steps.`,
+            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions +' tasks. ' +
+                            'You have been blocked from working on this job. The administrator of this job will contact you with next steps.',
                      type: 'error' };
         }
     }
@@ -226,8 +226,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         if (quiz && config.enabled && quiz.status === 'passed' && (window.pybossa.passedQuizShowed || window.pybossa.takingQuiz)){
             window.pybossa.passedQuizShowed = false;
             window.pybossa.takingQuiz = false;
-            return { msg: `Thank you for taking the quiz. You got ${quiz.result.right} correct out of ${quiz.config.questions} tasks.
-                           You will now be able to work on this job.`,
+            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + 'correct out of ' + quiz.config.questions + ' tasks. ' +
+                           'You will now be able to work on this job.',
                      type: 'warning' };
         }
     }
