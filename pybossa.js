@@ -133,6 +133,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     window.top.close();
                 }, 100);
             }
+
             return data;});
     }
 
@@ -173,22 +174,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
-    function _inQuizMode (userProgress, quiz, config){
-        if (quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0) && userProgress.remaining_for_user > 0)){
-            window.pybossa.takingQuiz = true;
 
+    //This func determine if the worker is in quiz mode and is not the first question of the quiz, and ensure there are questions available.
+    function _inQuizMode (userProgress, quiz, config){
+        if (quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0)
+            && userProgress.remaining_for_user > 0)){
+            window.pybossa.takingQuiz = true;
             return { msg: 'In quiz mode', type: 'info' };
         }
     }
 
-    function _quizStarted (quiz, config){
-        if(!window.pybossa.takingQuiz && !window.pybossa.passedQuizShowed && quiz && config.enabled && quiz.status === 'in_progress' && (quiz.result.right === 0 && quiz.result.wrong === 0)){
+    //This func determine if worker is in quiz mode and is the first question of the quiz, and ensure there are questions availables
+    function _quizStarted (userProgress,quiz, config){
+        if(!window.pybossa.takingQuiz && !window.pybossa.passedQuizShowed && quiz && config.enabled && quiz.status === 'in_progress' &&
+            userProgress.remaining_for_user > 0 && (quiz.result.right === 0 && quiz.result.wrong === 0)){
+
+            //This flag is to determine when to show the passedQuizNotification
             window.pybossa.passedQuizShowed = true;
             return { msg: 'You must complete a quiz successfully before you can work on this job. You are in Quiz mode.',
                      type: 'info' }
         }
     }
 
+    // This func determine if there are no more questions available for the quiz.
     function _outOfGoldenTasks (userProgress, quiz, config){
         if (quiz && config.enabled && userProgress.remaining_for_user === 0 && quiz.status === 'in_progress' && !window.pybossa.isGoldMode){
             return { msg: 'We have run out of quiz questions for you. Please notify the project owner.',
@@ -196,29 +204,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
+    //This func is to determine if in Bulk gold mode are more task available to be converted into gold
     function _outOfNoneGoldTask (userProgress){
-        if (userProgress.available_gold_tasks === userProgress.total && window.pybossa.isGoldMode){
+        if (userProgress.available_gold_tasks === userProgress.total && window.pybossa.isBulk){
             return { msg:'In gold mode, there are no task available.',
                      type: 'warning' };
         }
     }
 
+    //This func determine if the quiz is failed and the user is not able to work on the project
     function _failedQuiz (quiz, config){
         if (quiz && config.enabled && quiz.status === 'failed'){
-            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You have been blocked from working on this job. The administrator of this job will contact you with next steps.',
+            return { msg: `Thank you for taking the quiz. You got ${quiz.result.right} correct out of ${quiz.config.questions}
+                            tasks. You have been blocked from working on this job. The administrator of this job will contact you with next steps.`,
                      type: 'error' };
         }
     }
 
+    // This func determine if the user passed the quiz and use two flags to decide to show or not the notification since we only want to show it once
     function _passedQuiz (quiz, config){
         if (quiz && config.enabled && quiz.status === 'passed' && (window.pybossa.passedQuizShowed || window.pybossa.takingQuiz)){
             window.pybossa.passedQuizShowed = false;
             window.pybossa.takingQuiz = false;
-            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. You will now be able to work on this job.',
+            return { msg: `Thank you for taking the quiz. You got ${quiz.result.right} correct out of ${quiz.config.questions} tasks.
+                           You will now be able to work on this job.`,
                      type: 'warning' };
         }
     }
 
+    //This func determine if the project is completed.
     function _projectCompleted (userProgress, quiz){
         if (quiz && userProgress.remaining_for_user === 0 && quiz.status !== 'in_progress'){
             return { msg: 'Congratulations, you have completed the job.',
@@ -226,8 +240,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
+    //This func determine if its in gold mode.
     function _inGoldMode (userProgress){
-        if (window.pybossa.isGoldMode && !(userProgress.available_gold_tasks === userProgress.remaining)){
+        if ((window.pybossa.isGoldMode && !(userProgress.available_gold_tasks === userProgress.remaining)) ||
+            (window.pybossa.isGoldMode && !window.pybossa.isBulk) ){
             return { msg: 'In Gold Mode', type: 'warning' };
         }
     }
@@ -246,7 +262,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         return outOfGoldenTasks || outOfNoneGoldTask || _inGoldMode(userProgress) ||
                failedQuiz || projectCompleted ||
                _passedQuiz(quiz, config) ||
-               _quizStarted(quiz, config) || _inQuizMode(userProgress, quiz, config);
+               _quizStarted(userProgress,quiz, config) || _inQuizMode(userProgress, quiz, config);
     }
 
     function _displayBanner(){
