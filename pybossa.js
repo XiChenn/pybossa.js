@@ -205,8 +205,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     //This func is to determine if in Bulk gold mode are more task available to be converted into gold
-    function _outOfNonGoldTask (userProgress){
-        if (userProgress.available_gold_tasks === userProgress.total && window.pybossa.isBulk){
+    function _outOfNonGoldTask (isEmptyTask){
+        if (isEmptyTask && window.pybossa.isBulk){
             return { msg:'In gold mode, there are no tasks available.',
                      type: 'warning' };
         }
@@ -227,7 +227,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             window.pybossa.passedQuizShowed = false;
             window.pybossa.takingQuiz = false;
             return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. ' +
-                           'You will now be able to work on this job.',
+                           'You are now working on this job.',
                      type: 'warning' };
         }
     }
@@ -241,9 +241,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     //This func determine if its in gold mode.
-    function _inGoldMode (userProgress){
-        if ((window.pybossa.isGoldMode && !(userProgress.available_gold_tasks === userProgress.remaining)) ||
-            (window.pybossa.isGoldMode && !window.pybossa.isBulk) ){
+    function _inGoldMode (isEmptyTask){
+        if (window.pybossa.isGoldMode && !isEmptyTask) {
             return { msg: 'In Gold Mode', type: 'warning' };
         }
     }
@@ -254,12 +253,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         var projectCompleted = _projectCompleted(userProgress, quiz);
         var outOfGoldenTasks = _outOfGoldenTasks(quiz, config, isEmptyTask);
         var failedQuiz = _failedQuiz(quiz, config);
-        var outOfNonGoldTask = _outOfNonGoldTask(userProgress)
+        var outOfNonGoldTask = _outOfNonGoldTask(isEmptyTask)
 
         if (outOfNonGoldTask || ((outOfGoldenTasks|| projectCompleted || failedQuiz ) && !window.pybossa.isGoldMode)) {
             _setTpHidden(true);
         }
-        return outOfGoldenTasks || outOfNonGoldTask || _inGoldMode(userProgress) ||
+        return outOfGoldenTasks || outOfNonGoldTask || _inGoldMode(isEmptyTask) ||
                failedQuiz || projectCompleted ||
                _passedQuiz(quiz, config) ||
                _quizStarted(userProgress, quiz, config) || _inQuizMode(userProgress, quiz, config);
