@@ -205,9 +205,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     //This func is to determine if in Bulk gold mode are more task available to be converted into gold
-    function _outOfNoneGoldTask (userProgress){
+    function _outOfNonGoldTask (userProgress){
         if (userProgress.available_gold_tasks === userProgress.total && window.pybossa.isBulk){
-            return { msg:'In gold mode, there are no task available.',
+            return { msg:'In gold mode, there are no tasks available.',
                      type: 'warning' };
         }
     }
@@ -226,7 +226,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         if (quiz && config.enabled && quiz.status === 'passed' && (window.pybossa.passedQuizShowed || window.pybossa.takingQuiz)){
             window.pybossa.passedQuizShowed = false;
             window.pybossa.takingQuiz = false;
-            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + 'correct out of ' + quiz.config.questions + ' tasks. ' +
+            return { msg: 'Thank you for taking the quiz. You got ' + quiz.result.right + ' correct out of ' + quiz.config.questions + ' tasks. ' +
                            'You will now be able to work on this job.',
                      type: 'warning' };
         }
@@ -254,12 +254,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         var projectCompleted = _projectCompleted(userProgress, quiz);
         var outOfGoldenTasks = _outOfGoldenTasks(userProgress, quiz, config);
         var failedQuiz = _failedQuiz(quiz, config);
-        var outOfNoneGoldTask = _outOfNoneGoldTask(userProgress)
+        var outOfNonGoldTask = _outOfNonGoldTask(userProgress)
 
-        if (outOfNoneGoldTask || ((outOfGoldenTasks|| projectCompleted || failedQuiz ) && !window.pybossa.isGoldMode)) {
+        if (outOfNonGoldTask || ((outOfGoldenTasks|| projectCompleted || failedQuiz ) && !window.pybossa.isGoldMode)) {
             _setTpHidden(true);
         }
-        return outOfGoldenTasks || outOfNoneGoldTask || _inGoldMode(userProgress) ||
+        return outOfGoldenTasks || outOfNonGoldTask || _inGoldMode(userProgress) ||
                failedQuiz || projectCompleted ||
                _passedQuiz(quiz, config) ||
                _quizStarted(userProgress,quiz, config) || _inQuizMode(userProgress, quiz, config);
