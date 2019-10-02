@@ -197,8 +197,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     // This func determine if there are no more questions available for the quiz.
-    function _outOfGoldenTasks (userProgress, quiz, config){
-        if (quiz && config.enabled && userProgress.remaining_for_user === 0 && quiz.status === 'in_progress' && !window.pybossa.isGoldMode){
+    function _outOfGoldenTasks (quiz, config, isEmptyTask){
+        if (quiz && config.enabled && isEmptyTask && quiz.status === 'in_progress' && !window.pybossa.isGoldMode){
             return { msg: 'We have run out of quiz questions for you. Please notify the project owner.',
                      type: 'info' }
         }
@@ -248,11 +248,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
-    function _getNotificationMessage(userProgress){
+    function _getNotificationMessage(userProgress, isEmptyTask){
         var quiz = userProgress.quiz;
         var config = quiz.config;
         var projectCompleted = _projectCompleted(userProgress, quiz);
-        var outOfGoldenTasks = _outOfGoldenTasks(userProgress, quiz, config);
+        var outOfGoldenTasks = _outOfGoldenTasks(quiz, config, isEmptyTask);
         var failedQuiz = _failedQuiz(quiz, config);
         var outOfNonGoldTask = _outOfNonGoldTask(userProgress)
 
@@ -262,10 +262,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         return outOfGoldenTasks || outOfNonGoldTask || _inGoldMode(userProgress) ||
                failedQuiz || projectCompleted ||
                _passedQuiz(quiz, config) ||
-               _quizStarted(userProgress,quiz, config) || _inQuizMode(userProgress, quiz, config);
+               _quizStarted(userProgress, quiz, config) || _inQuizMode(userProgress, quiz, config);
     }
 
-    function _displayBanner(){
+    function _displayBanner(isEmptyTask){
         var regex = new RegExp('/project/([^/]+)');
         var match = window.location.href.match(regex);
         var projectName;
@@ -274,7 +274,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
 
         _userProgress(projectName).then(data => {
-            var quizMsg = _getNotificationMessage(data);
+            var quizMsg = _getNotificationMessage(data, isEmptyTask);
             if(quizMsg){
                 pybossaNotify(quizMsg.msg, true, quizMsg.type);
             }
@@ -282,7 +282,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     }
 
     function _resolveNextTaskLoaded(task, deferred) {
-        _displayBanner();
+        var isEmptyTask = JSON.stringify(task) == '{}';
+        _displayBanner(isEmptyTask);
         var udef = $.Deferred();
         _taskLoaded(task, udef);
         udef.done(function(task) {
