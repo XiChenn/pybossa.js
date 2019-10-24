@@ -69,12 +69,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         });
     }
 
-    function _saveTaskRun(taskrun, projectId) {
+    function _postRequestAsForm(url, data){
+        return $.ajax({
+            type: 'POST',
+            url: url,
+            contentType: false,
+            processData: false,
+            data: data
+        });
+    }
+
+    function _saveTaskRun(taskrun, projectId, containsFiles ) {
         var requestUrl = url + 'api/taskrun';
         if(window.pybossa.isGoldMode){
             requestUrl = url + 'api/project/' + projectId + '/taskgold';
         }
-        return _postRequest(requestUrl, taskrun);
+        return containsFiles ? _postRequestAsForm(requestUrl, taskrun) : _postRequest(requestUrl, taskrun);
     }
 
     function _cancelTask(projectname, taskId) {
@@ -118,6 +128,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         return task;
     }
 
+    function getFieldFiles(answer){
+        var fieldNames = [];
+        if (typeof(answer) === 'object'){
+            for(var key in answer){
+                if (answer[key] && answer[key].file instanceof File) {
+                    fieldNames.push(key);
+                }
+            }
+        }
+        return fieldNames;
+    }
+
+    function getFormDataWithFiles(info, answer, fieldFiles){
+        var taskrun = new FormData();
+        for(var i in fieldFiles){
+            var fileData= answer[fieldFiles[i]]
+            taskrun.append(fieldFiles[i], fileData.file, fileData.name);
+        }
+        taskrun.append('request_json', JSON.stringify(info))
+        return taskrun;
+    }
+
     function _createTaskRun(answer, task) {
         task = _addAnswerToTask(task, answer);
         var taskrun = {
@@ -125,8 +157,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             'task_id': task.id,
             'info': task.answer
         };
-        taskrun = JSON.stringify(taskrun);
-        return _saveTaskRun(taskrun, task.project_id).then(function(data) {
+
+        var fieldFiles = getFieldFiles(answer);
+
+        var containFiles = fieldFiles.length > 0;
+        taskrun = containFiles ? getFormDataWithFiles(taskrun, answer, fieldFiles) : JSON.stringify(taskrun);
+
+        return _saveTaskRun(taskrun, task.project_id, containFiles).then(function(data) {
             if(window.pybossa.isGoldMode && !window.pybossa.isBulk){
                 setTimeout(function(){
                     window.opener.location.reload(true);
@@ -167,7 +204,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     function _setUserPresentTask (userFunc) {
         _presentTask = userFunc;
     }
-
 
     //This func determine if the worker is in quiz mode and is not the first question of the quiz, and ensure there are questions available.
     function _inQuizMode (userProgress, quiz, config){
