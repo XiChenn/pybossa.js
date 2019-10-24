@@ -241,6 +241,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
+    //This func determine if its in read only mode.
+    function _readOnly (){
+        if (window.pybossa.isReadOnly ) {
+            return { msg: "In read only mode, you can't submit.", type: 'warning' };
+        }
+    }
+
     function _getNotificationMessage(userProgress, isEmptyTask){
         var quiz = userProgress.quiz;
         var config = quiz.config;
@@ -249,7 +256,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         var failedQuiz = _failedQuiz(quiz, config);
         var outOfNonGoldTask = _outOfNonGoldTask(isEmptyTask)
 
-        return outOfGoldenTasks || outOfNonGoldTask || _inGoldMode(isEmptyTask) ||
+        return _readOnly() || outOfGoldenTasks || outOfNonGoldTask || _inGoldMode(isEmptyTask) ||
                failedQuiz || projectCompleted ||
                _passedQuiz(quiz, config) ||
                _quizStarted(userProgress, quiz, config) || _inQuizMode(userProgress, quiz, config);
@@ -265,7 +272,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         _userProgress(projectName).then(data => {
             var quizMsg = _getNotificationMessage(data, isEmptyTask);
-            if(!window.pybossa.isReadOnly && quizMsg){
+            if(quizMsg){
                 pybossaNotify(quizMsg.msg, true, quizMsg.type);
             }
             });
