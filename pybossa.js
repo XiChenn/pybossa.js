@@ -167,12 +167,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     function _setUserPresentTask (userFunc) {
         _presentTask = userFunc;
     }
-    function _setTpHidden (value){
-        tpElement = document.getElementById('task-presenter-section');
-        if (tpElement){
-            tpElement.hidden = value;
-        }
-    }
 
 
     //This func determine if the worker is in quiz mode and is not the first question of the quiz, and ensure there are questions available.
@@ -255,9 +249,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         var failedQuiz = _failedQuiz(quiz, config);
         var outOfNonGoldTask = _outOfNonGoldTask(isEmptyTask)
 
-        if (outOfNonGoldTask || ((outOfGoldenTasks|| projectCompleted || failedQuiz ) && !window.pybossa.isGoldMode)) {
-            _setTpHidden(true);
-        }
         return outOfGoldenTasks || outOfNonGoldTask || _inGoldMode(isEmptyTask) ||
                failedQuiz || projectCompleted ||
                _passedQuiz(quiz, config) ||
@@ -274,7 +265,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         _userProgress(projectName).then(data => {
             var quizMsg = _getNotificationMessage(data, isEmptyTask);
-            if(quizMsg){
+            if(!window.pybossa.isReadOnly && quizMsg){
                 pybossaNotify(quizMsg.msg, true, quizMsg.type);
             }
             });
@@ -394,6 +385,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     };
 
     pybossa.fetchLock = function (taskId) {
-        return _fetchLock(taskId);
+        if (!window.pybossa.isReadOnly)
+            return _fetchLock(taskId);
     }
 } (window.pybossa = window.pybossa || {}, jQuery));
