@@ -428,7 +428,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     };
 
     pybossa.fetchLock = function (taskId) {
-        if (!window.pybossa.isReadOnly)
-            return _fetchLock(taskId);
+        if (window.pybossa.isReadOnly) {
+            return $.Deferred().resolve(0);
+        }
+        return _fetchLock(taskId)
     }
 } (window.pybossa = window.pybossa || {}, jQuery));
