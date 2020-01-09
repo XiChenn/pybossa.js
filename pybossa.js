@@ -207,7 +207,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     //This func determine if the worker is in quiz mode and is not the first question of the quiz, and ensure there are questions available.
     function _inQuizMode (userProgress, quiz, config){
-        if (quiz && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0)
+        console.log(`_inQuizMode quiz.quiz_mode_enabled=${quiz.quiz_mode_enabled}.`);
+        if (quiz && quiz.quiz_mode_enabled && config.enabled && quiz.status === 'in_progress' && ((quiz.result.right > 0 || quiz.result.wrong > 0)
             && userProgress.remaining_for_user > 0)){
             window.pybossa.takingQuiz = true;
             return { msg: 'In quiz mode', type: 'info' };
@@ -216,7 +217,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     //This func determine if worker is in quiz mode and is the first question of the quiz, and ensure there are questions availables
     function _quizStarted (userProgress, quiz, config){
-        if(!window.pybossa.takingQuiz && !window.pybossa.passedQuizShowed && quiz && config.enabled && quiz.status === 'in_progress' &&
+        console.log(`_quizStarted quiz.quiz_mode_enabled=${quiz.quiz_mode_enabled}.`);
+        if(!window.pybossa.takingQuiz && !window.pybossa.passedQuizShowed && quiz && quiz.quiz_mode_enabled && config.enabled && quiz.status === 'in_progress' &&
             userProgress.remaining_for_user > 0 && (quiz.result.right === 0 && quiz.result.wrong === 0)){
 
             //This flag is to determine when to show the passedQuizNotification
