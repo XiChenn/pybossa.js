@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (function(pybossa, $, undefined) {
     var url = '/';
+    var _userId;
 
     //AJAX calls
     function _userProgress(projectname) {
@@ -371,7 +372,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         });
     }
 
-
     // Public methods
     pybossa.newTask = function (projectname) {
         return _getProject(projectname).then(_getNewTask);
@@ -432,5 +432,108 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             return $.Deferred().resolve(0);
         }
         return _fetchLock(taskId)
+    };
+
+    pybossa.setUserId = function (userId) {
+        _userId = userId;
+    };
+
+    pybossa.getUserId = function () {
+        return _userId;
+    };
+
+    var DB_NAME = 'Pybossa';
+    var DB_VERSION = 1;
+    var STORE_NAME = 'answers'
+
+    function openDb (dbName, dbVersion) {
+        if (!window.indexedDB) {
+            console.warn('indexdDB not available. Cannot save partial answers');
+            return;
+        }
+        return new Promise((resolve, reject) => {
+            var req = window.indexedDB.open(dbName, dbVersion);
+            req.onsuccess = evt => resolve(evt.target.result);
+            req.onerror = reject;
+            req.onupgradeneeded = (evt) => {
+                evt.target.result.createObjectStore(STORE_NAME, {keyPath: 'taskId'});
+            }
+        });
     }
+
+    let _db;
+
+    function getKey(taskId) {
+        return _userId + '-' + taskId;
+    }
+
+    function getDb () {
+        if (_db === undefined) {
+            return openDb(DB_NAME, DB_VERSION)
+            .then(function(db) {
+                _db = db;
+                return _db;
+            })
+            .catch(function(err) {
+                console.warn({ err });
+            });
+        }
+        return Promise.resolve(_db);
+    }
+
+    function getStore (opts) {
+        return getDb()
+        .then(function(db) {
+            if (!db) {
+                return;
+            }
+            var transaction = db.transaction([STORE_NAME], opts.readOnly ? 'readonly' : 'readwrite');
+            return transaction.objectStore(STORE_NAME);
+        });
+    }
+
+    pybossa.savePartialAnswer = function (taskId, answer) {
+        return getStore({ readOnly: false })
+        .then(function(store) {
+            if (!store) {
+                return;
+            }
+            return new Promise((resolve, reject) => {
+                var req = store.put({
+                    taskId: getKey(taskId), answer
+                });
+                req.onsuccess = resolve;
+                req.onerror = reject;
+            });
+        })
+    };
+
+    pybossa.getSavedAnswer = function (taskId) {
+        return getStore({ readOnly: true })
+        .then(function(store) {
+            if (!store) {
+                return;
+            }
+            return new Promise((resolve, reject) => {
+                var req = store.get(getKey(taskId));
+                req.onsuccess = (evt) => {
+                    resolve(evt.target.result.answer) };
+                req.onerror = reject;
+            });
+        })
+    };
+
+    pybossa.deleteSavedAnswer = function (taskId) {
+        return getStore({ readOnly: false })
+        .then(function(store) {
+            if (!store) {
+                return;
+            }
+            return new Promise((resolve, reject) => {
+                var req = store.delete(getKey(taskId));
+                req.onsuccess = resolve;
+                req.onerror = reject;
+            });
+        })
+    };
 } (window.pybossa = window.pybossa || {}, jQuery));
