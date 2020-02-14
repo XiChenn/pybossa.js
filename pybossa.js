@@ -500,7 +500,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             }
             return new Promise((resolve, reject) => {
                 var req = store.put({
-                    taskId: getKey(taskId), answer
+                    taskId: getKey(taskId),
+                    answer: answer,
+                    savedAt: (new Date()).toISOString()
                 });
                 req.onsuccess = resolve;
                 req.onerror = reject;
@@ -517,7 +519,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             return new Promise((resolve, reject) => {
                 var req = store.get(getKey(taskId));
                 req.onsuccess = (evt) => {
-                    resolve(evt.target.result.answer) };
+                    resolve(evt.target.result) };
                 req.onerror = reject;
             });
         })
