@@ -274,7 +274,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     //This func determine guidelines has been updated.
     function _guidelinesUpdated (userProgress){
         if (userProgress.guidelines_updated){
-            pybossaNotify('Guidelines has been updated since your last submission.', true, 'warning', true);
+            pybossaNotify('Guidelines have been updated since your last submission.', true, 'warning', true);
         }
     }
 
