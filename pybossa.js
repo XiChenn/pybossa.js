@@ -271,6 +271,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
+    //This func determine guidelines has been updated.
+    function _guidelinesUpdated (userProgress){
+        if (userProgress.guidelines_updated){
+            pybossaNotify('Guidelines has been updated since your last submission.', true, 'warning', true);
+        }
+    }
+
     //This func determine if its in gold mode.
     function _inGoldMode (isEmptyTask){
         if (window.pybossa.isGoldMode && !isEmptyTask) {
@@ -312,6 +319,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             if(quizMsg){
                 pybossaNotify(quizMsg.msg, true, quizMsg.type);
             }
+            _guidelinesUpdated(data);
             });
     }
 
