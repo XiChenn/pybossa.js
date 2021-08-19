@@ -292,6 +292,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
+    function _isCherryPick (){
+        return window.pybossa.isCherryPick;
+    }
+
     function _getNotificationMessage(userProgress, isEmptyTask){
         var quiz = userProgress.quiz;
         var config = quiz.config;
@@ -344,7 +348,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 if (typeof project === 'undefined' || !project) {
                     console.log("Warning: project seems undefined. Did you run in your project pybossa.run('projectname'); with the right name?");
                 };
-                var xhr = (taskId && (previousTask === undefined)) ? _fetchTask(taskId) : _fetchNewTask(project.id, offset);
+                var xhr = (taskId && (previousTask === undefined) && !_isCherryPick()) ? _fetchTask(taskId) : _fetchNewTask(project.id, offset);
                 xhr.done(function(task) {
                     if (previousTask && task.id === previousTask.id) {
                         var secondTry = _fetchNewTask(project.id, offset+1)
