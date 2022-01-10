@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (function(pybossa, $, undefined) {
     var url = '/';
     var _userId;
+    var _observer;
 
     //AJAX calls
     function _userProgress(projectname) {
@@ -327,9 +328,48 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             });
     }
 
+    function _check_disable_submit_buttons() {
+        // Disable the submit buttons if the task is read-only.
+        var selector = 'button.submit-button,button.submit-last-button';
+
+        // Setup callback handler for change to disabled state on buttons.
+        function onDisabled(mutations) {
+            // Check if the "disabled" attribute has changed to false (meaning the button is now active).
+            mutations.forEach(function(mutation) {
+                // Is the button no longer disabled?
+                if (!mutation.target.disabled) {
+                    // The button is active. Set the buttons back to disabled if the task is read-only.
+                    var isReadOnly = _readOnly();
+                    isReadOnly && document.querySelectorAll(selector).forEach(function(button) {
+                        button.disabled = true;
+                        button.setAttribute('title', isReadOnly.msg);
+                    });
+                }
+            });
+
+            // Cleanup the observer.
+            _observer.disconnect();
+        }
+
+        // Cleanup any previous observer.
+        _observer && _observer.disconnect();
+
+        // Create an observer to notify when the disabled state has changed (task has fully loaded and presented to user).
+        _observer = new MutationObserver(onDisabled);
+
+        // Setup the observer to watch for changes to the disabled attribute on the buttons.
+        document.querySelectorAll(selector).forEach(function(button) {
+            _observer.observe(button, {
+                attributes: true,
+                attributeFilter: ['disabled']
+            });
+        });
+    }
+
     function _resolveNextTaskLoaded(task, deferred) {
         var isEmptyTask = JSON.stringify(task) == '{}';
         _displayBanner(isEmptyTask);
+        _check_disable_submit_buttons();
         var udef = $.Deferred();
         _taskLoaded(task, udef);
         udef.done(function(task) {
