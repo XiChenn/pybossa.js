@@ -102,6 +102,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         });
     }
 
+    function _releaseCategoryLocks(projectname, taskId) {
+        var data = {
+            'projectname': projectname
+        };
+        return $.ajax({
+            type: 'POST',
+            url: url + 'api/task/' + taskId + '/release_category_locks',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(data)
+        });
+    }
+
     function _fetchLock(taskId) {
         return $.ajax({
             url: url + 'api/task/' + taskId + '/lock',
@@ -493,6 +506,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     pybossa.getUserId = function () {
         return _userId;
     };
+
+    pybossa.releaseCategoryLocks = function (projectname, taskId) {
+        _releaseCategoryLocks(projectname, taskId).done(() => {
+        });
+    }
 
     var DB_NAME = 'Pybossa';
     var DB_VERSION = 1;
