@@ -88,10 +88,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         });
     }
 
+    function _putRequest(url, data){
+        return $.ajax({
+            type: 'PUT',
+            url: url,
+            dataType: 'json',
+            contentType: 'application/json',
+            data: data
+        });
+    }
+
+    function _putRequestAsForm(url, data){
+        return $.ajax({
+            type: 'PUT',
+            url: url,
+            contentType: false,
+            processData: false,
+            data: data
+        });
+    }
+
     function _saveTaskRun(taskrun, projectId, containsFiles ) {
         var requestUrl = URL + 'api/taskrun';
         if(window.pybossa.isGoldMode){
             requestUrl = URL + 'api/project/' + projectId + '/taskgold';
+        }
+        if (window.pybossa.editSubmission){
+            requestUrl = requestUrl + "/" + window.pybossa.taskrunId;
+            return containsFiles ? _putRequestAsForm(requestUrl, taskrun) : _putRequest(requestUrl, taskrun);
         }
         return containsFiles ? _postRequestAsForm(requestUrl, taskrun) : _postRequest(requestUrl, taskrun);
     }
@@ -312,6 +336,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         }
     }
 
+    //This func determine if its in edit submission mode.
+    function _canEditSubmission (){
+        if (window.pybossa.editSubmission ) {
+            return { msg: "You are now editing this task.", type: 'warning' };
+        }
+    }
+
     function _isCherryPick (){
         return window.pybossa.isCherryPick;
     }
@@ -325,7 +356,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                             // handles redirect on project completion
                _failedQuiz(quiz, config) || _projectCompleted(userProgress, quiz, isEmptyTask, projectName) ||
                _passedQuiz(quiz, config) || _quizStarted(userProgress, quiz, config) ||
-               _inQuizMode(userProgress, quiz, config);
+               _inQuizMode(userProgress, quiz, config) || _canEditSubmission();
     }
 
     function _displayBanner(isEmptyTask){
@@ -410,20 +441,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     jqXHR =  _fetchTask(taskId);
                 } else if (taskId && _isCherryPick() && previousTask === undefined) {  // cherry pick from task list
                     jqXHR = _fetchNewTask(project.id, offset, taskId);
+                } else if (window.pybossa.editSubmission) {
+                    // with edit submission option, upon submit button clicked
+                    // suppress loading of next task. this will also disable
+                    // submit button avoiding multiple clicks
+                    jqXHR =  null;
                 } else {  // Non cherry pick mode or auto pick a task after click "submit" button
                     jqXHR = _fetchNewTask(project.id, offset);
                 }
-                jqXHR.done(function(task) {
-                    if (previousTask && task.id === previousTask.id) {
-                        _fetchNewTask(project.id, offset+1)
-                        .done(function(secondTask){
-                            _resolveNextTaskLoaded(secondTask, def);
-                        });
-                    }
-                    else {
-                        _resolveNextTaskLoaded(task, def);
-                    }
-                });
+
+                if (jqXHR){
+                    jqXHR.done(function(task) {
+                        if (previousTask && task.id === previousTask.id) {
+                            _fetchNewTask(project.id, offset+1)
+                            .done(function(secondTask){
+                                _resolveNextTaskLoaded(secondTask, def);
+                            });
+                        }
+                        else {
+                            _resolveNextTaskLoaded(task, def);
+                        }
+                    });
+                }
                 return def.promise();
             }
 
@@ -503,7 +542,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     };
 
     pybossa.fetchLock = function (taskId) {
-        if (window.pybossa.isReadOnly) {
+        if (window.pybossa.isReadOnly || window.pybossa.editSubmission) {
             return $.Deferred().resolve(0);
         }
         return _fetchLock(taskId)
